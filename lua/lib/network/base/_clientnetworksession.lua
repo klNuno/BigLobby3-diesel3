@@ -1,30 +1,18 @@
-local orig__ClientNetworkSession = {}
-orig__ClientNetworkSession.on_join_request_reply = ClientNetworkSession.on_join_request_reply
+local orig__ClientNetworkSession = {
+	on_join_request_reply = ClientNetworkSession.on_join_request_reply
+}
 
 
-function ClientNetworkSession:on_join_request_reply(...)
-	-- Place params in table
-	local params = {...}
-
-	-- Get params we want based on if the func signature is correct
-	local reply = params[1]
-	local sender = #params==17 and params[17] -- last param
-	local num_players = sender and type(params[16]) == "number" and params[16]
-
-	-- If the response is `1`(ok), set BigLobby to use host preference or 4 if
-	-- a regular lobby (num_players param is falsey).
-	if reply == HostNetworkSession.JOIN_REPLY.OK then
-		-- Persisting the value across BLT reloads is required, otherwise when you
-		-- reach the mission briefing screen, it will use your prefs not hosts.
-		Global.BigLobbyPersist.num_players = num_players or 4
-
-		-- Updates state for current BLT instance
+-- The host's lobby size used to ride along as a 16th parameter of `join_request_reply`,
+-- which required injecting a modified copy of that message. Diesel 3.0 keeps the vanilla
+-- parameter list, so the size now arrives over SuperBLT's hidden channel (see
+-- BigLobbyGlobals.SIZE_MESSAGE). Until it does, fall back to the vanilla lobby size so a
+-- BigLobby client joining a plain host does not size itself for more peers than exist.
+function ClientNetworkSession:on_join_request_reply(reply, ...)
+	if reply == HostNetworkSession.JOIN_REPLY.OK and not Global.BigLobbyPersist.num_players then
+		Global.BigLobbyPersist.num_players = tweak_data.max_players or 4
 		BigLobbyGlobals.num_players = Global.BigLobbyPersist.num_players
 	end
 
-	-- Assign sender to original param 16 for the original func call to use
-	if sender then params[16] = params[17] end
-
-	-- Pass params on to the original call
-	orig__ClientNetworkSession.on_join_request_reply(self, unpack(params))
+	orig__ClientNetworkSession.on_join_request_reply(self, reply, ...)
 end

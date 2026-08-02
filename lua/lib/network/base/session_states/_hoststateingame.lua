@@ -227,7 +227,8 @@ function HostStateInGame:on_join_auth_received(data, auth_ticket, sender)
 
 	-- End Original Code --
 
-	-- Appears orginally, but is modified to include the num_player_slots parameter
+	-- Vanilla parameter list: Diesel 3.0 has no room for an extra one, the lobby size is
+	-- sent separately right below.
 	local params = {
 		HostNetworkSession.JOIN_REPLY.OK,
 		new_peer_id,
@@ -243,13 +244,13 @@ function HostStateInGame:on_join_auth_received(data, auth_ticket, sender)
 		job_stage,
 		alternative_job_stage,
 		interupt_job_stage_level_index,
-		server_xuid,
-		BigLobbyGlobals:num_player_slots()
+		server_xuid
 	}
 
 	-- Original Code --
 
 	new_peer:send("join_request_reply", unpack(params))
+	BigLobbyGlobals:send_lobby_size(new_peer_id)
 	new_peer:send("set_loading_state", false, data.session:load_counter())
 	managers.vote:sync_server_kick_option(new_peer)
 	data.session:send_ok_to_load_level()

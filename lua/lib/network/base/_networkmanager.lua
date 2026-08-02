@@ -1,5 +1,4 @@
 local orig__NetworkManager = {
-	start_network = NetworkManager.start_network,
 	on_peer_added = NetworkManager.on_peer_added
 }
 
@@ -14,15 +13,4 @@ function NetworkManager:on_peer_added(peer, peer_id)
 
 		managers.network.matchmake:set_num_players( ratio_to_icon )
 	end
-end
-
-
--- Adds two new handlers for network messages to handle the `biglobby__` prefix modifications.
-function NetworkManager:start_network()
-	if not self._started then
-		self:register_handler("biglobby__connection", BigLobby__ConnectionNetworkHandler)
-		self:register_handler("biglobby__unit", BigLobby__UnitNetworkHandler)
-	end
-
-	orig__NetworkManager.start_network(self)
 end
