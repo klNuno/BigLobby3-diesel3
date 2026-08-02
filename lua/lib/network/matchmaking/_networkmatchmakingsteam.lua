@@ -2,6 +2,17 @@
 -- If not adjusted to new player limit will prevent Steam allowing a connection, failing it.
 NetworkMatchMakingSTEAM.OPEN_SLOTS = BigLobbyGlobals:num_player_slots()
 
+-- Refresh the slot count right before the lobby is created. The value above is resolved
+-- once at load, so without this a Mod Options change only took effect after a restart and
+-- the game kept creating lobbies with the previous size.
+local orig__create_lobby = NetworkMatchMakingSTEAM.create_lobby
+
+function NetworkMatchMakingSTEAM:create_lobby(settings)
+	NetworkMatchMakingSTEAM.OPEN_SLOTS = BigLobbyGlobals:num_player_slots()
+
+	return orig__create_lobby(self, settings)
+end
+
 -- Prevent non BigLobby players from finding/joining this game.
 if not BigLobbyGlobals:is_small_lobby() then
 	-- Version is included in search key now, not sure of any benefit changing game version?

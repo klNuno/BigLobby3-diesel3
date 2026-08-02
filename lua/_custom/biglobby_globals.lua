@@ -38,8 +38,11 @@ if not _G.BigLobbyGlobals then
 	BigLobbyGlobals.num_players = Global.BigLobbyPersist.num_players or BigLobbyGlobals.num_players_settings
 
 
+	-- When joining, the host's size wins. When hosting, follow the Mod Options slider
+	-- live: `num_players` is only resolved once at load, so reading it alone made every
+	-- slider change a no-op until the next restart.
 	function BigLobbyGlobals:num_player_slots()
-		return self.num_players
+		return Global.BigLobbyPersist.num_players or self.num_players_settings or self.num_players or 4
 	end
 
 
