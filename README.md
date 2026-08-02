@@ -9,11 +9,36 @@ Upstream 3.27.6 targets the Diesel 2 engine and breaks on Diesel 3.0.
 ## Requirements
 
 - PAYDAY 2 on the Diesel 3.0 engine (`open_beta` branch during the beta, default branch afterwards)
-- A 64-bit SuperBLT DLL (`WSOCK32.dll`) plus the SuperBLT Lua basemod in `mods/base`:
-  [diesel-modding/PAYDAY2-SuperBLT](https://github.com/diesel-modding/PAYDAY2-SuperBLT) and
-  [diesel-modding/PAYDAY2-SuperBLT-Lua](https://github.com/diesel-modding/PAYDAY2-SuperBLT-Lua)
+- A **crate-aware** 64-bit SuperBLT loader. This mod declares an XML tweak on
+  `settings/network.network_settings`, so the loader has to be able to read the original file out of the
+  game's asset database. Diesel 3.0 replaced the old `bundle_db.blb` bundles with `.crate` files indexed
+  by `assets/crates.shipping_manifest`, and the official build
+  ([diesel-modding/PAYDAY2-SuperBLT](https://github.com/diesel-modding/PAYDAY2-SuperBLT), master as of
+  2026-07-30) still only reads `.blb`: `src/dbutil/DB.cpp` contains no crate support at all. With it the
+  game dies at startup on
+  `No 'all.blb' or 'bundle_db.blb' found in 'assets' folder` followed by
+  `Wren asset load failed ... compile or runtime error!`.
+  [perry519/pd2-superblt-x64-openbeta-fixes](https://github.com/perry519/pd2-superblt-x64-openbeta-fixes)
+  implements the crate reader and works. Take its `WSOCK32.dll` and its `mods/base`, they go together
+  (its basemod is an older SuperBLT-Lua that matches that DLL).
 - Every player in the lobby needs the same SuperBLT build and the same BigLobby version. Mixed versions
   cannot connect, and neither can a Diesel 2 client and a Diesel 3 client.
+
+## Install
+
+Drop into the PAYDAY 2 root folder (next to `PAYDAY2.exe`):
+
+```
+PAYDAY 2/
+  WSOCK32.dll          <- crate-aware SuperBLT loader
+  mods/
+    base/              <- SuperBLT Lua basemod matching that loader
+    BigLobby3/         <- this repository
+```
+
+Delete `sigcache_PAYDAY2.db` from the game root when swapping loaders, the signatures differ between
+builds. First launch may show a SuperBLT error window, close it. The lobby size lives in
+Options, Mod Options, BigLobby.
 
 Set the lobby size in Mod Options (BigLobby), it defaults to 22 and is capped at 128 by the injected
 network messages. Achievements are disabled automatically above 4 players.
