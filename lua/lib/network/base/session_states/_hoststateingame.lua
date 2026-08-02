@@ -17,9 +17,9 @@ function HostStateInGame:on_join_request_received(data, peer_name, peer_account_
 	if peer_account_type_str == "STEAM" then
 		local temp = peer_name
 
-		if SystemInfo:distribution() == Idstring("STEAM") then
+		if IS_STEAM then
 			peer_name = managers.network.account:username_by_id(peer_account_id)
-		elseif SystemInfo:matchmaking() == Idstring("MM_STEAM") then
+		elseif IS_STEAM_MM then
 			peer_name = managers.network.matchmake:username_by_id(peer_account_id)
 		end
 
@@ -29,8 +29,8 @@ function HostStateInGame:on_join_request_received(data, peer_name, peer_account_
 	end
 
 
-	if SocialHubFriends:is_blocked(peer_id) then
-		self:_send_request_denied(sender, HostNetworkSession.JOIN_REPLY.SHUB_BLOCKE, my_user_id)
+	if managers.socialhub:is_user_blocked(peer_id) then
+		self:_send_request_denied(sender, HostNetworkSession.JOIN_REPLY.SHUB_BLOCKED, my_user_id)
 
 		return
 	end
@@ -38,7 +38,7 @@ function HostStateInGame:on_join_request_received(data, peer_name, peer_account_
 	if not is_invite and managers.network.matchmake:get_lobby_type() == "friend" then
 		print("[HostStateInGame:on_join_request_received] lobby type friend only, check if friend")
 
-		if SocialHubFriends:is_friend_global(peer_id, peer_account_type_str, peer_account_id) then
+		if managers.socialhub:is_user_socialhub_or_distribution_friend(peer_id, peer_account_type_str, peer_account_id) then
 			print("[HostStateInGame:on_join_request_received] ok we are friend with ", peer_name)
 		else
 			print("[HostStateInGame:on_join_request_received] we are NOT friend with ", peer_name, " deny request")
@@ -105,12 +105,12 @@ function HostStateInGame:on_join_request_received(data, peer_name, peer_account_
 	if not MenuCallbackHandler:is_modded_client() and not Global.game_settings.allow_modded_players then
 		local is_modded = false
 
-		if SystemInfo:distribution() == Idstring("STEAM") and peer_account_type_str == "STEAM" then
+		if IS_STEAM and peer_account_type_str == "STEAM" then
 			local user = Steam:user(peer_id)
 			is_modded = user:rich_presence("is_modded") == "1"
 		end
 
-		if SystemInfo:distribution() == Idstring("EPIC") and peer_account_type_str == "EPIC" then
+		if IS_EPIC and peer_account_type_str == "EPIC" then
 			-- Nothing
 		end
 
@@ -175,9 +175,16 @@ function HostStateInGame:on_join_request_received(data, peer_name, peer_account_
 	new_peer:set_rank(peer_rank)
 	new_peer:set_join_stinger_index(peer_stinger_index)
 
-	local ticket = new_peer:create_ticket(data.local_peer:account_id())
+	-- Diesel 3.0: create_ticket is asynchronous and the ticket may need chunking (TDVS)
+	local function ticket_callback(ticket)
+		if TDVS:should_chunk_auth_ticket(ticket) then
+			TDVS:send_auth_ticket_in_chunks(ticket, new_peer:rpc(), true, HostNetworkSession.JOIN_REPLY.OK)
+		else
+			new_peer:send("request_join_auth", HostNetworkSession.JOIN_REPLY.OK, ticket)
+		end
+	end
 
-	new_peer:send("request_join_auth", HostNetworkSession.JOIN_REPLY.OK, ticket)
+	new_peer:create_ticket(data.local_peer:account_id(), ticket_callback)
 	-- End Original Code --
 end
 

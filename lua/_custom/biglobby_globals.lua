@@ -59,14 +59,16 @@ if not _G.BigLobbyGlobals then
 
 
 	-- Semantic versioning
+	-- Bumped for the Diesel 3.0 port: the value is part of the matchmaking search key,
+	-- so Diesel 2 clients and Diesel 3 clients can never see each other's lobbies.
 	function BigLobbyGlobals:version()
-		return "3.27.6"
+		return "3.28.0"
 	end
 
 
 	-- GameVersion for matchmaking, integer is expected
 	function BigLobbyGlobals:gameversion()
-		return 3276
+		return 3280
 	end
 
 
