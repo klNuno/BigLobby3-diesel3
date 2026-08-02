@@ -13,7 +13,12 @@ function bkin_bl__menu:init()
 	self._constants = {}
 	self._constants.MAX_SLOTS       = 128
 	self._constants.UNIQUE_HEISTERS = 21
-	self._data.lobby_size           = self._data.lobby_size or 22
+	-- Diesel 3.0 creates the lobby through EOS even on the Steam branch, and
+	-- DistributionMatchmaking:create_lobby answers "error" for large member counts:
+	-- 22 is refused, 7 is accepted. Keep the slider inside the range that works and
+	-- default to a size that actually creates a lobby.
+	self._constants.LOBBY_SIZE_MAX  = 8
+	self._data.lobby_size           = math.min(self._data.lobby_size or 6, self._constants.LOBBY_SIZE_MAX)
 	self._data.allow_more_bots      = self._data.allow_more_bots
 	self._data.num_bots             = self._data.num_bots or self._constants.UNIQUE_HEISTERS
 	self._data.auto_stop_all_bots   = self._data.auto_stop_all_bots or true
@@ -134,7 +139,7 @@ function bkin_bl__menu:RegisterHooks()
 			callback   = "bkin_bl__set_size__clbk",
 			value      = self._data.lobby_size,
 			min        = 4,
-			max        = 22,
+			max        = self._constants.LOBBY_SIZE_MAX,
 			step       = 1,
 			show_value = true,
 			menu_id    = self.menu_id,
